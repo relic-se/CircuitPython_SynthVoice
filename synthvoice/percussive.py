@@ -20,8 +20,7 @@ class Voice(synthvoice.Voice):
     Handles envelope times, tuning, waveforms, etc. for multiple :class:`synthio.Note` objects.
 
     :param count: The number of :class:`synthio.Note` objects to generate. Defaults to 3.
-    :param filter_type: The type of filter to use as designated by the constants within
-        :class:`synthvoice.FilterType` enum. Defaults to :const:`synthvoice.FilterType.LOWPASS`.
+    :param filter_mode: The type of filter to use. Defaults to :const:`synthio.FilterMode.LOW_PASS`.
     :param filter_frequency: The exact frequency of the filter of all :class:`synthio.Note` objects
         in hertz. Defaults to 20000hz.
     :param frequencies: A list of the frequencies corresponding to each :class:`synthio.Note` object
@@ -37,7 +36,7 @@ class Voice(synthvoice.Voice):
         self,
         synthesizer: synthio.Synthesizer,
         count: int = 3,
-        filter_type: int = synthvoice.FilterType.LOWPASS,
+        filter_mode: synthio.FilterMode = synthio.FilterMode.LOW_PASS,
         filter_frequency: float = 20000.0,
         frequencies: tuple[float] = [],
         times: tuple[float] = [],
@@ -61,18 +60,18 @@ class Voice(synthvoice.Voice):
             once=True,
         )
 
-        self._notes = []
-        for i in range(count):
-            self._notes.append(
+        self._notes = tuple(
+            [
                 synthio.Note(frequency=frequencies[i % len(frequencies)], bend=self._lfo)
-            )
-        self._notes = tuple(self._notes)
+                for i in range(count)
+            ]
+        )
 
         self.times = times
         self.waveforms = waveforms
 
-        self.filter_type = filter_type
         self.filter_frequency = filter_frequency
+        self.filter_mode = filter_mode
 
     @property
     def notes(self) -> tuple[synthio.Note]:

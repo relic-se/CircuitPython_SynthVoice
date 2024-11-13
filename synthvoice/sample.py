@@ -232,8 +232,7 @@ class Sample(synthvoice.oscillator.Oscillator):
         self._note.frequency = self._note.frequency * pow(2, self._source_tune + self._loop_tune)
 
     def update(self):
-        """Update filter modulation and sample timing when :attr:`looping` is set to `False`."""
-        super().update()
+        """Update sample timing when :attr:`looping` is set to `False`."""
         if (
             not self.looping
             and not self._start is None
