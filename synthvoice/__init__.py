@@ -298,7 +298,9 @@ class Voice:
     def _update_envelope(self) -> None:
         pass
 
-    def _update_filter(self, mode: synthio.FilterMode, biquad: synthio.BlockBiquad = None) -> None:
+    def _update_filter(self, mode: synthio.FilterMode = None, biquad: synthio.BlockBiquad = None) -> None:
+        if mode is None:
+            mode = self.filter_mode
         if biquad is None:
             biquad = synthio.BlockBiquad(mode, self._filter_frequency, self._filter_resonance)
         for note in self.notes:

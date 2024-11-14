@@ -42,8 +42,6 @@ class Voice(synthvoice.Voice):
         times: tuple[float] = [],
         waveforms: tuple[ReadableBuffer] | ReadableBuffer = [],
     ):
-        super().__init__(synthesizer)
-
         if not frequencies:
             frequencies = tuple([440.0])
         if not times:
@@ -66,6 +64,8 @@ class Voice(synthvoice.Voice):
                 for i in range(count)
             ]
         )
+        
+        super().__init__(synthesizer)
 
         self.times = times
         self.waveforms = waveforms
@@ -237,7 +237,7 @@ class Cymbal(Voice):
         super().__init__(
             synthesizer,
             count=3,
-            filter_type=synthvoice.FilterType.HIGHPASS,
+            filter_mode=synthio.FilterMode.HIGH_PASS,
             filter_frequency=frequency,
             frequencies=(90, 135, 165.0),
             waveforms=synthwaveform.noise(),
