@@ -237,7 +237,7 @@ class Sample(synthvoice.oscillator.Oscillator):
         if (
             not self.looping
             and not self._start is None
-            and time.monotonic() - self._start >= self.duration
+            and time.monotonic() - self._start >= self.duration - self._release_time
         ):
             self.release()
             self._start = None
