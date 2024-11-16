@@ -52,6 +52,7 @@ class Voice(synthvoice.Voice):
 
         self._times = times
         self._attack_level = 1.0
+        self._decay_time = 0.0
 
         self._lfo = synthio.LFO(
             waveform=np.array([32767, -32768], dtype=np.int16),
@@ -60,6 +61,9 @@ class Voice(synthvoice.Voice):
             offset=0.33,
             once=True,
         )
+
+        self._frequencies = frequencies
+        self._tune = 0.0
 
         self._notes = []
         for i in range(count):
@@ -84,21 +88,33 @@ class Voice(synthvoice.Voice):
         """Get all :class:`synthio.BlockInput` objects attributed to this voice."""
         return tuple([self._lfo])
 
+    def _update_frequencies(self) -> None:
+        for i, note in enumerate(self.notes):
+            note.frequency = self._frequencies[i % len(self._frequencies)] * pow(2, self._tune / 12)
+
     @property
     def frequencies(self) -> tuple[float]:
         """The base frequencies in hertz."""
-        value = []
-        for note in self.notes:
-            value.append(note.frequency)
-        return tuple(value)
+        return self._frequencies
 
     @frequencies.setter
     def frequencies(self, value: tuple[float] | float) -> None:
         if not isinstance(value, tuple):
             value = tuple([value])
         if value:
-            for i, note in enumerate(self.notes):
-                note.frequency = value[i % len(value)]
+            self._frequencies = value
+            self._update_frequencies()
+
+    @property
+    def tune(self) -> float:
+        """The amount of tuning form the root frequencies of the voice in semitones (1/12 of an
+        octave). Defaults to 0.0.
+        """
+
+    @tune.setter
+    def tune(self, value: float) -> None:
+        self._tune = value
+        self._update_frequencies()
 
     @property
     def times(self) -> tuple[float]:
@@ -159,12 +175,23 @@ class Voice(synthvoice.Voice):
         for note in self.notes:
             note.amplitude = min(max(value, 0.0), 1.0)
 
+    @property
+    def pan(self) -> float:
+        """The stereo panning of the voice from -1.0 (left) to 1.0 (right)."""
+        return self.notes[0].panning
+
+    @pan.setter
+    def pan(self, value: float) -> None:
+        value = min(max(value, -1.0), 1.0)
+        for note in self.notes:
+            note.panning = value
+
     def _update_envelope(self) -> None:
         mod = self._get_velocity_mod()
         for i, note in enumerate(self.notes):
             note.envelope = synthio.Envelope(
                 attack_time=0.0,
-                decay_time=self._times[i % len(self._times)],
+                decay_time=self._times[i % len(self._times)] * pow(2, self._decay_time),
                 release_time=0.0,
                 attack_level=mod * self._attack_level,
                 sustain_level=0.0,
@@ -172,12 +199,24 @@ class Voice(synthvoice.Voice):
 
     @property
     def attack_level(self) -> float:
-        """The level of attack of the amplitude envelope."""
+        """The level of attack of the amplitude envelope from 0.0 to 1.0."""
         return self._attack_level
 
     @attack_level.setter
     def attack_level(self, value: float) -> None:
-        self._attack_level = value
+        self._attack_level = min(max(value, 0.0), 1.0)
+        self._update_envelope()
+
+    @property
+    def decay_time(self) -> float:
+        """The amount of decay of the amplitude envelope relative to the initial decay time. 0.0 is
+        the default amount of decay, 1.0 is double the decay, and -1.0 is half the decay.
+        """
+        return self._decay_time
+
+    @decay_time.setter
+    def decay_time(self, value: float) -> None:
+        self._decay_time = value
         self._update_envelope()
 
 
@@ -231,8 +270,7 @@ class Cymbal(Voice):
     def __init__(
         self,
         synthesizer: synthio.Synthesizer,
-        min_time: float,
-        max_time: float,
+        time: float,
         frequency: float = 9500.0,
     ):
         super().__init__(
@@ -242,23 +280,8 @@ class Cymbal(Voice):
             filter_frequency=frequency,
             frequencies=(90, 135, 165.0),
             waveforms=synthwaveform.noise(),
+            times=(time, max(time - 0.02, 0.001), time),
         )
-        self._min_time = max(min_time, 0.0)
-        self._max_time = max(max_time, self._min_time)
-        self.decay = 0.5
-
-    @property
-    def decay(self) -> float:
-        """The decay time of the hi-hat using a relative value from 0.0 to 1.0 and the predefined
-        minimum and maximum times.
-        """
-        return self._decay
-
-    @decay.setter
-    def decay(self, value: float) -> None:
-        self._decay = min(max(value, 0.0), 1.0)
-        value = self._decay * (self._max_time - self._min_time) + self._min_time
-        self.times = (value, max(value - 0.02, 0.0), value)
 
 
 class ClosedHat(Cymbal):
@@ -267,7 +290,7 @@ class ClosedHat(Cymbal):
     """
 
     def __init__(self, synthesizer: synthio.Synthesizer):
-        super().__init__(synthesizer, 0.025, 0.2)
+        super().__init__(synthesizer, 0.1125)
 
 
 class OpenHat(Cymbal):
@@ -276,14 +299,14 @@ class OpenHat(Cymbal):
     """
 
     def __init__(self, synthesizer: synthio.Synthesizer):
-        super().__init__(synthesizer, 0.25, 1.0)
+        super().__init__(synthesizer, 0.625)
 
 
 class Ride(Cymbal):
     """A single-shot "analog" drum voice representing a ride cymbal using noise waveforms."""
 
     def __init__(self, synthesizer: synthio.Synthesizer):
-        super().__init__(synthesizer, 0.5, 2.0, 18000.0)
+        super().__init__(synthesizer, 1.25, 18000.0)
 
 
 class Tom(Voice):
@@ -298,49 +321,16 @@ class Tom(Voice):
     def __init__(  # noqa: PLR0913
         self,
         synthesizer: synthio.Synthesizer,
-        min_time: float,
-        max_time: float,
-        min_frequency: float,
-        max_frequency: float,
+        time: float,
+        frequency: float,
     ):
         super().__init__(
             synthesizer,
             count=2,
             filter_frequency=4000.0,
             waveforms=(synthwaveform.triangle(), synthwaveform.noise(amplitude=0.25)),
-        )
-        self._min_time = max(min_time, 0.0)
-        self._max_time = max(max_time, self._min_time)
-        self.decay = 0.5
-
-        self._min_frequency = max(min_frequency, 0.0)
-        self._max_frequency = max(max_frequency, self._min_frequency)
-        self.frequency = 0.5
-
-    @property
-    def decay(self) -> float:
-        """The decay time of the tom drum using a relative value from 0.0 to 1.0 and the predefined
-        minimum and maximum times.
-        """
-        return self._decay
-
-    @decay.setter
-    def decay(self, value: float) -> None:
-        self._decay = min(max(value, 0.0), 1.0)
-        self.times = (self._decay * (self._max_time - self._min_time) + self._min_time, 0.025)
-
-    @property
-    def frequency(self) -> float:
-        """The note frequency of the tom drum using a relative value from 0.0 to 1.0 and the
-        predefined minimum and maximum frequencies.
-        """
-        return self._frequency
-
-    @frequency.setter
-    def frequency(self, value: float) -> None:
-        self._frequency = min(max(value, 0.0), 1.0)
-        self.frequencies = (
-            self._frequency * (self._max_frequency - self._min_frequency) + self._min_frequency
+            times=(time, 0.025),
+            frequencies=tuple([frequency]),
         )
 
 
@@ -348,18 +338,18 @@ class HighTom(Tom):
     """A single-shot "analog" drum voice representing a high or left rack tom drum."""
 
     def __init__(self, synthesizer: synthio.Synthesizer):
-        super().__init__(synthesizer, 0.1, 0.45, 261.63, 293.66)
+        super().__init__(synthesizer, 0.275, 277.645)
 
 
 class MidTom(Tom):
     """A single-shot "analog" drum voice representing a middle or right rack tom drum."""
 
     def __init__(self, synthesizer: synthio.Synthesizer):
-        super().__init__(synthesizer, 0.1, 0.45, 185.00, 207.65)
+        super().__init__(synthesizer, 0.275, 196.325)
 
 
 class FloorTom(Tom):
     """A single-shot "analog" drum voice representing a low or floor tom drum."""
 
     def __init__(self, synthesizer: synthio.Synthesizer):
-        super().__init__(synthesizer, 0.1, 0.65, 116.54, 146.83)
+        super().__init__(synthesizer, 0.375, 131.685)
