@@ -31,24 +31,12 @@ class Oscillator(synthvoice.Voice):
     """
 
     def __init__(self, synthesizer: synthio.Synthesizer, root: float = 440.0):
-        super().__init__(synthesizer)
+        self._synthesizer = synthesizer
 
-        self._filter_envelope = synthvoice.AREnvelope(
-            attack_time=0.0,
-            release_time=0.0,
-            amount=0.0,
-        )
-        self._filter_lfo = synthio.LFO(
-            waveform=None,
-            rate=1.0,
-            scale=0.0,
-            offset=0.0,
-        )
-        self._filter_delay = synthio.LFO(
-            waveform=np.array([0, 32767], dtype=np.int16),
-            rate=1 / 0.001,
-            once=True,
-        )
+        self._notenum = -1
+        self._velocity = 0.0
+
+        self._velocity_amount = 1.0
 
         self._root = root
         self._coarse_tune = 0.0
@@ -131,6 +119,38 @@ class Oscillator(synthvoice.Voice):
         )
         self._update_envelope()
 
+        self._filter_frequency = synthesizer.sample_rate / 2
+        self._filter_resonance = 0.7071067811865475
+        self._filter_envelope = synthvoice.AREnvelope(
+            attack_time=0.0,
+            release_time=0.0,
+            amount=0.0,
+        )
+        self._filter_frequency_block = synthio.Math(
+            synthio.MathOperation.MAX,
+            synthio.Math(
+                synthio.MathOperation.SUM,
+                self._filter_frequency,
+                self._filter_envelope.block,
+                synthio.Math(
+                    synthio.MathOperation.PRODUCT,
+                    synthio.LFO(  # Filter LFO
+                        waveform=None,
+                        rate=1.0,
+                        scale=0.0,
+                        offset=0.0,
+                    ),
+                    synthio.LFO(  # Filter Delay
+                        waveform=np.array([0, 32767], dtype=np.int16),
+                        rate=1 / 0.001,
+                        once=True,
+                    ),
+                ),
+            ),
+            50.0,  # Minimum allowed frequency
+        )
+        self.filter_mode = synthio.FilterMode.LOW_PASS  # constructs self._filter
+
         self._append_blocks()
 
     @property
@@ -146,8 +166,11 @@ class Oscillator(synthvoice.Voice):
             + self._freq_lerp.blocks
             + self._pitch_lerp.blocks
             + (
-                self._filter_lfo,
-                self._filter_delay,
+                self._filter_frequency_block,
+                self._filter_frequency_block.a,
+                self._filter_frequency_block.a.c,
+                self._filter_frequency_block.a.c.a,  # Filter LFO
+                self._filter_frequency_block.a.c.b,  # Filter Delay
                 self._note.amplitude,
                 self._note.amplitude.b,
                 self._note.amplitude.b.a,  # Tremolo LFO
@@ -176,7 +199,7 @@ class Oscillator(synthvoice.Voice):
             return False
         self.frequency = synthio.midi_to_hz(notenum)
         self._filter_envelope.press()
-        self._filter_delay.retrigger()
+        self._filter_frequency_block.a.c.b.retrigger()
         self._note.amplitude.b.b.retrigger()  # Tremolo Delay
         self._note.bend.b.b.retrigger()  # Vibrato Delay
         self._note.bend.c.a.retrigger()  # Pitch Slew
@@ -527,13 +550,15 @@ class Oscillator(synthvoice.Voice):
         self._release_time = max(value, 0.0)
         self._update_envelope()
 
-    def _get_filter_frequency(self) -> float:
-        return max(
-            self._filter_frequency
-            + self._filter_envelope.value
-            + (self._filter_lfo.value * self._filter_delay.value),
-            50,
-        )
+    def _update_filter(self, mode: synthio.FilterMode = None, biquad: synthio.BlockBiquad = None) -> None:
+        if mode is None:
+            mode = self.filter_mode
+        if biquad is None:
+            biquad = synthio.BlockBiquad(mode, self._filter_frequency_block, self._filter_resonance)
+        super()._update_filter(mode, biquad)
+
+    def _update_filter_frequency(self) -> None:
+        self._filter_frequency_block.a.a = self._filter_frequency
 
     @property
     def filter_attack_time(self) -> float:
@@ -573,34 +598,30 @@ class Oscillator(synthvoice.Voice):
     @property
     def filter_rate(self) -> float:
         """The rate in hertz of the filter frequency LFO. Defaults to 1.0hz."""
-        return self._filter_lfo.rate
+        return self._filter_frequency_block.a.c.a.rate
 
     @filter_rate.setter
     def filter_rate(self, value: float) -> None:
-        self._filter_lfo.rate = value
+        self._filter_frequency_block.a.c.a.rate = value
 
     @property
     def filter_depth(self) -> float:
         """The maximum level of the filter LFO to add to :attr:`filter_frequency` in hertz in both
         positive and negative directions. Defaults to 0.0hz.
         """
-        return self._filter_lfo.scale
+        return self._filter_frequency_block.a.c.a.scale
 
     @filter_depth.setter
     def filter_depth(self, value: float) -> None:
-        self._filter_lfo.scale = value
+        self._filter_frequency_block.a.c.a.scale = value
 
     @property
     def filter_delay(self) -> float:
         """The amount of time to gradually increase the depth of the filter LFO in seconds. Must be
         greater than 0.0s. Defaults to 0.001s.
         """
-        return 1 / self._filter_delay.rate
+        return 1 / self._filter_frequency_block.a.c.b.rate
 
     @filter_delay.setter
     def filter_delay(self, value: float) -> None:
-        self._filter_delay.rate = 1 / max(value, 0.001)
-
-    def update(self) -> None:
-        """Update filter modulation."""
-        self._update_filter()
+        self._filter_frequency_block.a.c.b.rate = 1 / max(value, 0.001)

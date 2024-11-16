@@ -195,21 +195,6 @@ class AREnvelope:
         self._pressed = False
 
 
-class FilterType:
-    """An enum-like class with filter type constants which can be used with
-    :attr:`Voice.filter_type`.
-    """
-
-    LOWPASS = const(0)
-    """The constant representing a Low-Pass filter or LPF."""
-
-    HIGHPASS = const(1)
-    """The constant representing a High-Pass filter or HPF."""
-
-    BANDPASS = const(2)
-    """The constant representing a Band-Pass filter or BPF."""
-
-
 class Voice:
     """A "voice" to be used with a :class:`synthio.Synthesizer` object. Manages one or multiple
     :class:`synthio.Note` objects.
@@ -227,12 +212,11 @@ class Voice:
         self._notenum = -1
         self._velocity = 0.0
 
-        self._filter_type = FilterType.LOWPASS
+        self._velocity_amount = 1.0
+
         self._filter_frequency = synthesizer.sample_rate / 2
         self._filter_resonance = 0.7071067811865475
-        self._filter_buffer = (-1, 0.0, 0.0)
-
-        self._velocity_amount = 1.0
+        self.filter_mode = synthio.FilterMode.LOW_PASS  # constructs self._filter
 
     def _append_blocks(self) -> None:
         for block in self.blocks:
@@ -314,41 +298,29 @@ class Voice:
     def _update_envelope(self) -> None:
         pass
 
-    def _get_filter_frequency(self) -> float:
-        return self._filter_frequency
+    def _update_filter(self, mode: synthio.FilterMode = None, biquad: synthio.BlockBiquad = None) -> None:
+        if mode is None:
+            mode = self.filter_mode
+        if biquad is None:
+            biquad = synthio.BlockBiquad(mode, self._filter_frequency, self._filter_resonance)
+        for note in self.notes:
+            note.filter = biquad
 
-    def _update_filter(self) -> None:
-        current = (self._filter_type, self._get_filter_frequency(), self._filter_resonance)
-        if self._filter_buffer != current:
-            self._filter_buffer = current
-
-            if self._filter_type == FilterType.LOWPASS:
-                biquad = self._synthesizer.low_pass_filter
-                if current[1] >= self._synthesizer.sample_rate / 2:
-                    biquad = None
-            elif self._filter_type == FilterType.HIGHPASS:
-                biquad = self._synthesizer.high_pass_filter
-                if current[1] <= 50:
-                    biquad = None
-            else:  # FilterType.BANDPASS
-                biquad = self._synthesizer.band_pass_filter
-
-            if biquad is not None:
-                biquad = biquad(current[1], current[2])
-            for note in self.notes:
-                note.filter = biquad
+    def _update_filter_frequency(self) -> None:
+        for note in self.notes:
+            if note.filter is not None:
+                note.filter.frequency = self._filter_frequency
 
     @property
-    def filter_type(self) -> int:
-        """The type of filter as defined by the constants within :class:`FilterType`. Defaults to
-        :const:`FilterType.LOWPASS`.
-        """
-        return self._filter_type
+    def filter_mode(self) -> synthio.FilterMode:
+        """The type of the filter. Defaults to :const:`synthio.FilterMode.LOW_PASS`."""
+        if not self.notes or not self.notes[0].filter:
+            return synthio.FilterMode.LOW_PASS
+        return self.notes[0].filter.mode
 
-    @filter_type.setter
-    def filter_type(self, value: int) -> None:
-        self._filter_type = value
-        self._update_filter()
+    @filter_mode.setter
+    def filter_mode(self, value: synthio.FilterMode) -> None:
+        self._update_filter(value)
 
     @property
     def filter_frequency(self) -> float:
@@ -360,7 +332,7 @@ class Voice:
     @filter_frequency.setter
     def filter_frequency(self, value: float) -> None:
         self._filter_frequency = min(max(value, 0), self._synthesizer.sample_rate / 2)
-        self._update_filter()
+        self._update_filter_frequency()
 
     @property
     def filter_resonance(self) -> float:
