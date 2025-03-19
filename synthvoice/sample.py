@@ -7,7 +7,7 @@ import math
 import time
 
 import synthio
-import synthwaveform
+import relic_waveform
 import ulab.numpy as np
 import ulab.utils
 
@@ -170,7 +170,7 @@ class Sample(synthvoice.oscillator.Oscillator):
             self._file = None
             self._note.waveform = None
         else:
-            waveform, self.sample_rate = synthwaveform.from_wav(value, self._max_size)
+            waveform, self.sample_rate = relic_waveform.from_wav(value, self._max_size)
             self.waveform = normalize(waveform)
         self._update_source_root()
 

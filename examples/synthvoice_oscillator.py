@@ -8,7 +8,7 @@ import audiopwmio
 import board
 import digitalio
 import synthio
-import synthwaveform
+import relic_waveform
 import usb_midi
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
@@ -23,9 +23,9 @@ synth = synthio.Synthesizer(sample_rate=44100, channel_count=2)
 audio.play(synth)
 
 voice = Oscillator(synth)
-voice.waveform = synthwaveform.mix(
-    synthwaveform.saw(),
-    synthwaveform.saw(frequency=2),
+voice.waveform = relic_waveform.mix(
+    relic_waveform.saw(),
+    relic_waveform.saw(frequency=2),
 )
 
 # Frequency

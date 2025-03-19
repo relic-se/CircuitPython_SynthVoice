@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 import synthio
-import synthwaveform
+import relic_waveform
 import ulab.numpy as np
 
 import synthvoice
@@ -223,8 +223,8 @@ class Kick(Voice):
     """A single-shot "analog" drum voice representing a low frequency sine-wave kick drum."""
 
     def __init__(self, synthesizer: synthio.Synthesizer):
-        sine = synthwaveform.sine()
-        offset_sine = synthwaveform.sine(phase=0.5)
+        sine = relic_waveform.sine()
+        offset_sine = relic_waveform.sine(phase=0.5)
         super().__init__(
             synthesizer,
             count=3,
@@ -241,13 +241,13 @@ class Snare(Voice):
     """
 
     def __init__(self, synthesizer: synthio.Synthesizer):
-        sine_noise = synthwaveform.mix(
-            synthwaveform.sine(),
-            (synthwaveform.noise(), 0.5),
+        sine_noise = relic_waveform.mix(
+            relic_waveform.sine(),
+            (relic_waveform.noise(), 0.5),
         )
-        offset_sine_noise = synthwaveform.mix(
-            synthwaveform.sine(phase=0.5),
-            (synthwaveform.noise(), 0.5),
+        offset_sine_noise = relic_waveform.mix(
+            relic_waveform.sine(phase=0.5),
+            (relic_waveform.noise(), 0.5),
         )
         super().__init__(
             synthesizer,
@@ -278,7 +278,7 @@ class Cymbal(Voice):
             filter_mode=synthio.FilterMode.HIGH_PASS,
             filter_frequency=frequency,
             frequencies=(90, 135, 165.0),
-            waveforms=synthwaveform.noise(),
+            waveforms=relic_waveform.noise(),
             times=(time, max(time - 0.02, 0.001), time),
         )
 
@@ -327,7 +327,7 @@ class Tom(Voice):
             synthesizer,
             count=2,
             filter_frequency=4000.0,
-            waveforms=(synthwaveform.triangle(), synthwaveform.noise(amplitude=0.25)),
+            waveforms=(relic_waveform.triangle(), relic_waveform.noise(amplitude=0.25)),
             times=(time, 0.025),
             frequencies=tuple([frequency]),
         )

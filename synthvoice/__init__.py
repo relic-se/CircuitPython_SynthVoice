@@ -21,8 +21,8 @@ Implementation Notes
 * Adafruit CircuitPython firmware for the supported boards:
   https://circuitpython.org/downloads
 
-* CircuitPython SynthWaveform library:
-  https://github.com/dcooperdalrymple/CircuitPython_SynthWaveform
+* CircuitPython Waveform library:
+  https://github.com/dcooperdalrymple/CircuitPython_Waveform
 """
 
 # imports
