@@ -13,8 +13,8 @@ Introduction
     :alt: Discord
 
 
-.. image:: https://github.com/dcooperdalrymple/CircuitPython_SynthVoice/workflows/Build%20CI/badge.svg
-    :target: https://github.com/dcooperdalrymple/CircuitPython_SynthVoice/actions
+.. image:: https://github.com/relic-se/CircuitPython_SynthVoice/workflows/Build%20CI/badge.svg
+    :target: https://github.com/relic-se/CircuitPython_SynthVoice/actions
     :alt: Build Status
 
 
@@ -120,5 +120,5 @@ Contributing
 ============
 
 Contributions are welcome! Please read our `Code of Conduct
-<https://github.com/dcooperdalrymple/CircuitPython_SynthVoice/blob/HEAD/CODE_OF_CONDUCT.md>`_
+<https://github.com/relic-se/CircuitPython_SynthVoice/blob/HEAD/CODE_OF_CONDUCT.md>`_
 before contributing to help this project stay welcoming.

@@ -22,13 +22,13 @@ Implementation Notes
   https://circuitpython.org/downloads
 
 * CircuitPython Waveform library:
-  https://github.com/dcooperdalrymple/CircuitPython_Waveform
+  https://github.com/relic-se/CircuitPython_Waveform
 """
 
 # imports
 
 __version__ = "0.0.0+auto.0"
-__repo__ = "https://github.com/dcooperdalrymple/CircuitPython_SynthVoice.git"
+__repo__ = "https://github.com/relic-se/CircuitPython_SynthVoice.git"
 
 import synthio
 import ulab.numpy as np
