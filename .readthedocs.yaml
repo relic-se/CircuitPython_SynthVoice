@@ -8,10 +8,13 @@
 # Required
 version: 2
 
+sphinx:
+  configuration: docs/conf.py
+
 build:
   os: ubuntu-lts-latest
   tools:
-    python: "3.10"
+    python: "3"
 
 python:
   install:
