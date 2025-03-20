@@ -10,7 +10,7 @@ import board
 import digitalio
 import synthio
 
-from synthvoice.oscillator import Oscillator
+from relic_synthvoice.oscillator import Oscillator
 
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT

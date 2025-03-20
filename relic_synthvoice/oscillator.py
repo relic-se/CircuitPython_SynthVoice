@@ -8,7 +8,7 @@ import math
 import synthio
 import ulab.numpy as np
 
-import synthvoice
+import relic_synthvoice
 
 try:
     from circuitpython_typing import ReadableBuffer
@@ -18,7 +18,7 @@ except ImportError:
 _LOG_2 = math.log(2)
 
 
-class Oscillator(synthvoice.Voice):
+class Oscillator(relic_synthvoice.Voice):
     """A complex single-voice Oscillator with the following features:
     - amplitude & filter envelopes
     - LFOs (low-frequency oscillators) for amplitude (tremolo), filter, pitch (vibrato), & panning
@@ -45,11 +45,11 @@ class Oscillator(synthvoice.Voice):
         self._bend = 0.0
         self._waveform_loop = (0.0, 1.0)
 
-        self._freq_lerp = synthvoice.LerpBlockInput(
+        self._freq_lerp = relic_synthvoice.LerpBlockInput(
             rate=0.0,
             value=0.0,
         )
-        self._pitch_lerp = synthvoice.LerpBlockInput(
+        self._pitch_lerp = relic_synthvoice.LerpBlockInput(
             rate=0.0,
             value=0.0,
         )
@@ -121,7 +121,7 @@ class Oscillator(synthvoice.Voice):
 
         self._filter_frequency = synthesizer.sample_rate / 2
         self._filter_resonance = 0.7071067811865475
-        self._filter_envelope = synthvoice.AREnvelope(
+        self._filter_envelope = relic_synthvoice.AREnvelope(
             attack_time=0.0,
             release_time=0.0,
             amount=0.0,

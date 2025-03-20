@@ -19,7 +19,7 @@ Control a voice with USB MIDI input.
 Oscillator
 ------------
 
-Demonstration of the :class:`synthvoice.oscillator.Oscillator` voice.
+Demonstration of the :class:`relic_synthvoice.oscillator.Oscillator` voice.
 
 .. literalinclude:: ../examples/synthvoice_oscillator.py
     :caption: examples/synthvoice_oscillator.py
@@ -28,7 +28,7 @@ Demonstration of the :class:`synthvoice.oscillator.Oscillator` voice.
 Sample
 ------------
 
-Demonstration of the :class:`synthvoice.sample.Sample` voice with the provided 16-bit WAV 11025hz
+Demonstration of the :class:`relic_synthvoice.sample.Sample` voice with the provided 16-bit WAV 11025hz
 audio file, examples/test.wav.
 
 .. literalinclude:: ../examples/synthvoice_sample.py
@@ -38,7 +38,7 @@ audio file, examples/test.wav.
 Percussive
 ------------
 
-Demonstration of the voices available in the :mod:`synthvoice.percussive` module to create a simple
+Demonstration of the voices available in the :mod:`relic_synthvoice.percussive` module to create a simple
 drum machine (without a sequencer).
 
 .. literalinclude:: ../examples/synthvoice_percussive.py

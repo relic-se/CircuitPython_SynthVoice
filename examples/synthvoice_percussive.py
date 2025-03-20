@@ -12,7 +12,7 @@ import usb_midi
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
 
-import synthvoice.percussive
+import relic_synthvoice.percussive
 
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
@@ -22,14 +22,14 @@ synth = synthio.Synthesizer(sample_rate=44100)
 audio.play(synth)
 
 voices = (
-    synthvoice.percussive.Kick(synth),
-    synthvoice.percussive.Snare(synth),
-    synthvoice.percussive.ClosedHat(synth),
-    synthvoice.percussive.OpenHat(synth),
-    synthvoice.percussive.HighTom(synth),
-    synthvoice.percussive.MidTom(synth),
-    synthvoice.percussive.FloorTom(synth),
-    synthvoice.percussive.Ride(synth),
+    relic_synthvoice.percussive.Kick(synth),
+    relic_synthvoice.percussive.Snare(synth),
+    relic_synthvoice.percussive.ClosedHat(synth),
+    relic_synthvoice.percussive.OpenHat(synth),
+    relic_synthvoice.percussive.HighTom(synth),
+    relic_synthvoice.percussive.MidTom(synth),
+    relic_synthvoice.percussive.FloorTom(synth),
+    relic_synthvoice.percussive.Ride(synth),
 )
 
 midi = adafruit_midi.MIDI(

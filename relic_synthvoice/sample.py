@@ -11,7 +11,7 @@ import relic_waveform
 import ulab.numpy as np
 import ulab.utils
 
-import synthvoice.oscillator
+import relic_synthvoice.oscillator
 
 _LOG_2 = math.log(2)
 
@@ -92,10 +92,10 @@ def normalize(data: np.ndarray) -> np.ndarray:
     return data
 
 
-class Sample(synthvoice.oscillator.Oscillator):
+class Sample(relic_synthvoice.oscillator.Oscillator):
     """Voice which will play back an audio file. Handles pitch, looping points, and ".wav" file
     loading and inherits all properties and functionality of
-    :class:`synthvoice.oscillator.Oscillator`.
+    :class:`relic_synthvoice.oscillator.Oscillator`.
 
     :param synthesizer: The :class:`synthio.Synthesizer` object this voice will be used with.
     :param looping: Whether or not to continuously loop the sample or play it once when the voice is

@@ -7,7 +7,7 @@ import synthio
 import relic_waveform
 import ulab.numpy as np
 
-import synthvoice
+import relic_synthvoice
 
 try:
     from circuitpython_typing import ReadableBuffer
@@ -15,7 +15,7 @@ except ImportError:
     pass
 
 
-class Voice(synthvoice.Voice):
+class Voice(relic_synthvoice.Voice):
     """Base single-shot "analog" drum voice used by other classes within the percussive module.
     Handles envelope times, tuning, waveforms, etc. for multiple :class:`synthio.Note` objects.
 
@@ -159,7 +159,7 @@ class Voice(synthvoice.Voice):
         return True
 
     def release(self) -> bool:
-        """Release the voice. :class:`synthvoice.percussive.Voice` objects typically don't implement
+        """Release the voice. :class:`relic_synthvoice.percussive.Voice` objects typically don't implement
         this operation because of their "single-shot" nature and will always return `False`.
         """
         return False

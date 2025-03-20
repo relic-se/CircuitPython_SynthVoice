@@ -4,14 +4,14 @@
 .. If your library file(s) are nested in a directory (e.g. /adafruit_foo/foo.py)
 .. use this format as the module name: "adafruit_foo.foo"
 
-.. automodule:: synthvoice
+.. automodule:: relic_synthvoice
     :members:
 
-.. automodule:: synthvoice.oscillator
+.. automodule:: relic_synthvoice.oscillator
     :members:
 
-.. automodule:: synthvoice.sample
+.. automodule:: relic_synthvoice.sample
     :members:
 
-.. automodule:: synthvoice.percussive
+.. automodule:: relic_synthvoice.percussive
     :members:

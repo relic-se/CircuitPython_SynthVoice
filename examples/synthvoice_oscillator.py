@@ -13,7 +13,7 @@ import usb_midi
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
 
-from synthvoice.oscillator import Oscillator
+from relic_synthvoice.oscillator import Oscillator
 
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT

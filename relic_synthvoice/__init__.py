@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 """
-`synthvoice`
+`relic_synthvoice`
 ================================================================================
 
 Advanced synthio voices
