@@ -44,7 +44,7 @@ classifiers = [
 dynamic = ["dependencies", "optional-dependencies"]
 
 [tool.setuptools]
-packages = ["synthvoice"]
+packages = ["relic_synthvoice"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

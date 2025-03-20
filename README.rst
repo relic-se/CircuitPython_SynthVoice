@@ -98,7 +98,7 @@ Usage Example
     import synthio
     import time
 
-    from synthvoice.oscillator import Oscillator
+    from relic_synthvoice.oscillator import Oscillator
 
     audio = audiopwmio.PWMAudioOut(board.A0)
     synth = synthio.Synthesizer()
