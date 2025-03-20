@@ -7,8 +7,8 @@ import adafruit_midi
 import audiopwmio
 import board
 import digitalio
-import synthio
 import relic_waveform
+import synthio
 import usb_midi
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn

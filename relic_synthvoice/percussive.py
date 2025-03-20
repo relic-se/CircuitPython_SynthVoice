@@ -3,8 +3,8 @@
 #
 # SPDX-License-Identifier: MIT
 
-import synthio
 import relic_waveform
+import synthio
 import ulab.numpy as np
 
 import relic_synthvoice
@@ -68,7 +68,7 @@ class Voice(relic_synthvoice.Voice):
                 for i in range(count)
             ]
         )
-        
+
         super().__init__(synthesizer)
 
         self.times = times
@@ -159,8 +159,9 @@ class Voice(relic_synthvoice.Voice):
         return True
 
     def release(self) -> bool:
-        """Release the voice. :class:`relic_synthvoice.percussive.Voice` objects typically don't implement
-        this operation because of their "single-shot" nature and will always return `False`.
+        """Release the voice. :class:`relic_synthvoice.percussive.Voice` objects typically don't
+        implement this operation because of their "single-shot" nature and will always return
+        `False`.
         """
         return False
 

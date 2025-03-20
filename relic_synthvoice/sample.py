@@ -6,8 +6,8 @@
 import math
 import time
 
-import synthio
 import relic_waveform
+import synthio
 import ulab.numpy as np
 import ulab.utils
 

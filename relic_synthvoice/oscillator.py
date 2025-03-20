@@ -550,7 +550,9 @@ class Oscillator(relic_synthvoice.Voice):
         self._release_time = max(value, 0.0)
         self._update_envelope()
 
-    def _update_filter(self, mode: synthio.FilterMode = None, biquad: synthio.BlockBiquad = None) -> None:
+    def _update_filter(
+        self, mode: synthio.FilterMode = None, biquad: synthio.BlockBiquad = None
+    ) -> None:
         if mode is None:
             mode = self.filter_mode
         if biquad is None:
