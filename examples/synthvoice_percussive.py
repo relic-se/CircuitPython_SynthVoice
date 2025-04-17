@@ -42,6 +42,4 @@ while True:
         led.value = True
         voices[msg.note % len(voices)].press(msg.velocity)
     elif isinstance(msg, NoteOff) or (isinstance(msg, NoteOn) and msg.velocity == 0):
-        voices[msg.note % len(voices)].release()
-        if len(list(filter(lambda voice: voice.pressed, voices))) == 0:
-            led.value = False
+        led.value = False
