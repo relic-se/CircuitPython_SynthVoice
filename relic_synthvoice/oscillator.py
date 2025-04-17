@@ -119,18 +119,17 @@ class Oscillator(relic_synthvoice.Voice):
         )
         self._update_envelope()
 
-        self._filter_frequency = synthesizer.sample_rate / 2
-        self._filter_resonance = 0.7071067811865475
         self._filter_envelope = relic_synthvoice.AREnvelope(
             attack_time=0.0,
             release_time=0.0,
             amount=0.0,
         )
-        self._filter_frequency_block = synthio.Math(
+
+        filter_frequency = synthio.Math(
             synthio.MathOperation.MAX,
             synthio.Math(
                 synthio.MathOperation.SUM,
-                self._filter_frequency,
+                synthesizer.sample_rate / 2,
                 self._filter_envelope.block,
                 synthio.Math(
                     synthio.MathOperation.PRODUCT,
@@ -149,7 +148,8 @@ class Oscillator(relic_synthvoice.Voice):
             ),
             50.0,  # Minimum allowed frequency
         )
-        self.filter_mode = synthio.FilterMode.LOW_PASS  # constructs self._filter
+
+        self._update_biquad(frequency=filter_frequency)
 
         self._append_blocks()
 
@@ -161,31 +161,7 @@ class Oscillator(relic_synthvoice.Voice):
     @property
     def blocks(self) -> tuple[synthio.BlockInput]:
         """Get all :class:`synthio.BlockInput` objects attributed to this voice."""
-        return (
-            self._filter_envelope.blocks
-            + self._freq_lerp.blocks
-            + self._pitch_lerp.blocks
-            + (
-                self._filter_frequency_block,
-                self._filter_frequency_block.a,
-                self._filter_frequency_block.a.c,
-                self._filter_frequency_block.a.c.a,  # Filter LFO
-                self._filter_frequency_block.a.c.b,  # Filter Delay
-                self._note.amplitude,
-                self._note.amplitude.b,
-                self._note.amplitude.b.a,  # Tremolo LFO
-                self._note.amplitude.b.b,  # Tremolo Delay
-                self._note.bend,
-                self._note.bend.b,
-                self._note.bend.b.a,  # Vibrato LFO
-                self._note.bend.b.b,  # Vibrato Delay
-                self._note.bend.c,
-                self._note.bend.c.a,  # Pitch Slew
-                self._note.panning,
-                self._note.panning.a,  # Panning LFO
-                self._note.panning.b,  # Panning Delay
-            )
-        )
+        return self._filter_envelope.blocks + self._freq_lerp.blocks + self._pitch_lerp.blocks
 
     def press(self, notenum: int, velocity: float | int = 1.0) -> bool:
         """Update the voice to be "pressed" with a specific MIDI note number and velocity. Returns
@@ -199,7 +175,7 @@ class Oscillator(relic_synthvoice.Voice):
             return False
         self.frequency = synthio.midi_to_hz(notenum)
         self._filter_envelope.press()
-        self._filter_frequency_block.a.c.b.retrigger()
+        self._biquad.frequency.a.c.b.retrigger()
         self._note.amplitude.b.b.retrigger()  # Tremolo Delay
         self._note.bend.b.b.retrigger()  # Vibrato Delay
         self._note.bend.c.a.retrigger()  # Pitch Slew
@@ -550,17 +526,16 @@ class Oscillator(relic_synthvoice.Voice):
         self._release_time = max(value, 0.0)
         self._update_envelope()
 
-    def _update_filter(
-        self, mode: synthio.FilterMode = None, biquad: synthio.BlockBiquad = None
-    ) -> None:
-        if mode is None:
-            mode = self.filter_mode
-        if biquad is None:
-            biquad = synthio.BlockBiquad(mode, self._filter_frequency_block, self._filter_resonance)
-        super()._update_filter(mode, biquad)
+    @property
+    def filter_frequency(self) -> float:
+        """The frequency of the filter in hertz. The maximum value allowed and default is half of
+        the sample rate (the Nyquist frequency).
+        """
+        return self._biquad.frequency.a.a
 
-    def _update_filter_frequency(self) -> None:
-        self._filter_frequency_block.a.a = self._filter_frequency
+    @filter_frequency.setter
+    def filter_frequency(self, value: float) -> None:
+        self._biquad.frequency.a.a = min(max(value, 1), self._synthesizer.sample_rate / 2)
 
     @property
     def filter_attack_time(self) -> float:
@@ -600,30 +575,30 @@ class Oscillator(relic_synthvoice.Voice):
     @property
     def filter_rate(self) -> float:
         """The rate in hertz of the filter frequency LFO. Defaults to 1.0hz."""
-        return self._filter_frequency_block.a.c.a.rate
+        return self._biquad.frequency.a.c.a.rate
 
     @filter_rate.setter
     def filter_rate(self, value: float) -> None:
-        self._filter_frequency_block.a.c.a.rate = value
+        self._biquad.frequency.a.c.a.rate = value
 
     @property
     def filter_depth(self) -> float:
         """The maximum level of the filter LFO to add to :attr:`filter_frequency` in hertz in both
         positive and negative directions. Defaults to 0.0hz.
         """
-        return self._filter_frequency_block.a.c.a.scale
+        return self._biquad.frequency.a.c.a.scale
 
     @filter_depth.setter
     def filter_depth(self, value: float) -> None:
-        self._filter_frequency_block.a.c.a.scale = value
+        self._biquad.frequency.a.c.a.scale = value
 
     @property
     def filter_delay(self) -> float:
         """The amount of time to gradually increase the depth of the filter LFO in seconds. Must be
         greater than 0.0s. Defaults to 0.001s.
         """
-        return 1 / self._filter_frequency_block.a.c.b.rate
+        return 1 / self._biquad.frequency.a.c.b.rate
 
     @filter_delay.setter
     def filter_delay(self, value: float) -> None:
-        self._filter_frequency_block.a.c.b.rate = 1 / max(value, 0.001)
+        self._biquad.frequency.a.c.b.rate = 1 / max(value, 0.001)
