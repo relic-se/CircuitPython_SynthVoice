@@ -218,10 +218,10 @@ class Voice:
     def _update_biquad(
         self,
         mode: synthio.FilterMode = synthio.FilterMode.LOW_PASS,
-        frequency: float | synthio.BlockInput = 0.0,
-        Q: float | synthio.BlockInput = 0.7071067811865475,
+        frequency: any = None,
+        Q: float = 0.7071067811865475,
     ) -> None:
-        if type(frequency) is float and frequency <= 0.0:
+        if frequency is None:
             frequency = self._synthesizer.sample_rate / 2
 
         if hasattr(synthio, "BlockBiquad"):
