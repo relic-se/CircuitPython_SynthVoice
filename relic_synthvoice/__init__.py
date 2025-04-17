@@ -32,7 +32,11 @@ __repo__ = "https://github.com/relic-se/CircuitPython_SynthVoice.git"
 
 import synthio
 import ulab.numpy as np
-from micropython import const
+
+try:
+    from typing import Optional
+except ImportError:
+    pass
 
 
 class LerpBlockInput:
@@ -214,9 +218,19 @@ class Voice:
 
         self._velocity_amount = 1.0
 
-        self._filter_frequency = synthesizer.sample_rate / 2
-        self._filter_resonance = 0.7071067811865475
-        self.filter_mode = synthio.FilterMode.LOW_PASS  # constructs self._filter
+        self._update_biquad()
+
+    def _update_biquad(self, mode: synthio.FilterMode = synthio.FilterMode.LOW_PASS, frequency: Optional[float|synthio.BlockInput] = None, Q: float|synthio.BlockInput = 0.7071067811865475) -> None:
+        if frequency is None:
+            frequency = self._synthesizer.sample_rate / 2
+
+        if hasattr(synthio, "BlockBiquad"):
+            self._biquad = synthio.BlockBiquad(mode, frequency, Q)
+        else:
+            self._biquad = synthio.Biquad(mode, frequency, Q)
+            
+        for note in self.notes:
+            note.filter = self._biquad
 
     def _append_blocks(self) -> None:
         for block in self.blocks:
@@ -298,55 +312,36 @@ class Voice:
     def _update_envelope(self) -> None:
         pass
 
-    def _update_filter(
-        self, mode: synthio.FilterMode = None, biquad: synthio.BlockBiquad = None
-    ) -> None:
-        if mode is None:
-            mode = self.filter_mode
-        if biquad is None:
-            biquad = synthio.BlockBiquad(mode, self._filter_frequency, self._filter_resonance)
-        for note in self.notes:
-            note.filter = biquad
-
-    def _update_filter_frequency(self) -> None:
-        for note in self.notes:
-            if note.filter is not None:
-                note.filter.frequency = self._filter_frequency
-
     @property
     def filter_mode(self) -> synthio.FilterMode:
         """The type of the filter. Defaults to :const:`synthio.FilterMode.LOW_PASS`."""
-        if not self.notes or not self.notes[0].filter:
-            return synthio.FilterMode.LOW_PASS
-        return self.notes[0].filter.mode
+        return self._biquad.mode
 
     @filter_mode.setter
     def filter_mode(self, value: synthio.FilterMode) -> None:
-        self._update_filter(value)
+        self._update_biquad(value, self.filter_frequency, self.filter_resonance)
 
     @property
     def filter_frequency(self) -> float:
         """The frequency of the filter in hertz. The maximum value allowed and default is half of
         the sample rate (the Nyquist frequency).
         """
-        return self._filter_frequency
+        return self._biquad.frequency
 
     @filter_frequency.setter
     def filter_frequency(self, value: float) -> None:
-        self._filter_frequency = min(max(value, 0), self._synthesizer.sample_rate / 2)
-        self._update_filter_frequency()
+        self._biquad.frequency = min(max(value, 1), self._synthesizer.sample_rate / 2)
 
     @property
     def filter_resonance(self) -> float:
         """The resonance of the filter (or Q factor) as a number starting from 0.7. Defaults to
         0.7.
         """
-        return self._filter_resonance
+        return self._biquad.Q
 
     @filter_resonance.setter
     def filter_resonance(self, value: float) -> None:
-        self._filter_resonance = max(value, 0.7071067811865475)
-        self._update_filter()
+        self._biquad.Q = max(value, 0.7071067811865475)
 
     def update(self) -> None:
         """Update all time-based voice logic controlled outside of synthio such as filter
