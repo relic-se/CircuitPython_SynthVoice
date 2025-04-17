@@ -150,7 +150,7 @@ class Oscillator(relic_synthvoice.Voice):
         )
 
         self._update_biquad(frequency=filter_frequency)
-        
+
         self._append_blocks()
 
     @property
@@ -161,11 +161,7 @@ class Oscillator(relic_synthvoice.Voice):
     @property
     def blocks(self) -> tuple[synthio.BlockInput]:
         """Get all :class:`synthio.BlockInput` objects attributed to this voice."""
-        return (
-            self._filter_envelope.blocks
-            + self._freq_lerp.blocks
-            + self._pitch_lerp.blocks
-        )
+        return self._filter_envelope.blocks + self._freq_lerp.blocks + self._pitch_lerp.blocks
 
     def press(self, notenum: int, velocity: float | int = 1.0) -> bool:
         """Update the voice to be "pressed" with a specific MIDI note number and velocity. Returns

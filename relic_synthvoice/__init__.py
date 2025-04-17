@@ -220,7 +220,12 @@ class Voice:
 
         self._update_biquad()
 
-    def _update_biquad(self, mode: synthio.FilterMode = synthio.FilterMode.LOW_PASS, frequency: Optional[float|synthio.BlockInput] = None, Q: float|synthio.BlockInput = 0.7071067811865475) -> None:
+    def _update_biquad(
+        self,
+        mode: synthio.FilterMode = synthio.FilterMode.LOW_PASS,
+        frequency: Optional[float | synthio.BlockInput] = None,
+        Q: float | synthio.BlockInput = 0.7071067811865475,
+    ) -> None:
         if frequency is None:
             frequency = self._synthesizer.sample_rate / 2
 
@@ -228,7 +233,7 @@ class Voice:
             self._biquad = synthio.BlockBiquad(mode, frequency, Q)
         else:
             self._biquad = synthio.Biquad(mode, frequency, Q)
-            
+
         for note in self.notes:
             note.filter = self._biquad
 
