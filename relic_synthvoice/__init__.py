@@ -33,11 +33,6 @@ __repo__ = "https://github.com/relic-se/CircuitPython_SynthVoice.git"
 import synthio
 import ulab.numpy as np
 
-try:
-    from typing import Optional
-except ImportError:
-    pass
-
 
 class LerpBlockInput:
     """Creates and manages a :class:`synthio.BlockInput` object to "lerp" (linear interpolation)
@@ -223,7 +218,7 @@ class Voice:
     def _update_biquad(
         self,
         mode: synthio.FilterMode = synthio.FilterMode.LOW_PASS,
-        frequency: Optional[float | synthio.BlockInput] = None,
+        frequency: float | synthio.BlockInput = None,
         Q: float | synthio.BlockInput = 0.7071067811865475,
     ) -> None:
         if frequency is None:
