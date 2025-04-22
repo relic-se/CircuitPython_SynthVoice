@@ -25,6 +25,15 @@ Demonstration of the :class:`relic_synthvoice.oscillator.Oscillator` voice.
     :caption: examples/synthvoice_oscillator.py
     :linenos:
 
+Drone
+------------
+
+Demonstration of the :class:`relic_synthvoice.drone.Drone` voice.
+
+.. literalinclude:: ../examples/synthvoice_drone.py
+    :caption: examples/synthvoice_drone.py
+    :linenos:
+
 Sample
 ------------
 
