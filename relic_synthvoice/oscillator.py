@@ -27,7 +27,7 @@ class Oscillator(relic_synthvoice.Voice):
 
     :param synthesizer: The :class:`synthio.Synthesizer` object this voice will be used with.
     :param root: The root frequency used to calculate tuning. Defaults to 440.0hz. Changing this
-        value will effect tuning properties.
+        value will affect tuning properties.
     """
 
     def __init__(self, synthesizer: synthio.Synthesizer, root: float = 440.0):
@@ -221,11 +221,11 @@ class Oscillator(relic_synthvoice.Voice):
 
     @property
     def frequency(self) -> float:
-        """The frequency in hertz to set the oscillator to. Updating this value will active the
+        """The frequency in hertz to set the oscillator to. Updating this value will activate the
         frequency lerp block to gradually change the note frequency based on the glide settings of
         this voice.
         """
-        return self._freq_lerp.value
+        return math.exp(self._freq_lerp.value * _LOG_2) * self._root
 
     @frequency.setter
     def frequency(self, value: float) -> None:
