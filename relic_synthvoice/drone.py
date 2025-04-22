@@ -145,11 +145,18 @@ class Drone(relic_synthvoice.Voice):
 
     def _update_root(self):
         for i, note in enumerate(self._notes):
-            tune = i * float(self._detune)
+            tune = 0
+
+            if type(self._detune) is tuple:
+                tune = float(self._detune[i % len(self._detune)])
+            else:
+                tune = float(self._detune) * i / (len(self._notes) - 1)
+
             if type(self._tune) is tuple:
                 tune += float(self._tune[i % len(self._tune)])
             else:
                 tune += float(self._tune)
+
             note.frequency = self._root * pow(2, tune)
 
     @property
@@ -170,11 +177,11 @@ class Drone(relic_synthvoice.Voice):
         self._update_root()
 
     @property
-    def detune(self) -> float:
+    def detune(self) -> float|tuple:
         return self._detune
     
     @detune.setter
-    def detune(self, value: float) -> None:
+    def detune(self, value: float|tuple) -> None:
         self._detune = value
         self._update_root()
 
