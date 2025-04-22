@@ -225,7 +225,7 @@ class Oscillator(relic_synthvoice.Voice):
         frequency lerp block to gradually change the note frequency based on the glide settings of
         this voice.
         """
-        return self._freq_lerp.value
+        return math.exp(self._freq_lerp.value * _LOG_2) * self._root
 
     @frequency.setter
     def frequency(self, value: float) -> None:
