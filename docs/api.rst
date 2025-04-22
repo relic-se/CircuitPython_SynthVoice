@@ -13,5 +13,8 @@
 .. automodule:: relic_synthvoice.sample
     :members:
 
+.. automodule:: relic_synthvoice.drone
+    :members:
+
 .. automodule:: relic_synthvoice.percussive
     :members:
