@@ -20,7 +20,7 @@ _LOG_2 = math.log(2)
 
 class Oscillator(relic_synthvoice.Voice):
     """A complex single-voice Oscillator with the following features:
-    
+
     * amplitude & filter envelopes
     * LFOs (low-frequency oscillators) for amplitude (tremolo), filter, pitch (vibrato), & panning
     * pitch glide

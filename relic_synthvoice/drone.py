@@ -20,7 +20,7 @@ _LOG_2 = math.log(2)
 class Drone(relic_synthvoice.Voice):
     """A multi-oscillator voice intended to generate "droning" synthesizer sounds with the
     following features:
-    
+
     * per-oscillator tuning and detuning
     * amplitude & filter envelopes
     * LFOs (low-frequency oscillators) for amplitude (tremolo), filter, & pitch (vibrato)
