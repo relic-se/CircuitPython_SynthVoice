@@ -20,10 +20,11 @@ _LOG_2 = math.log(2)
 
 class Oscillator(relic_synthvoice.Voice):
     """A complex single-voice Oscillator with the following features:
-    - amplitude & filter envelopes
-    - LFOs (low-frequency oscillators) for amplitude (tremolo), filter, pitch (vibrato), & panning
-    - pitch glide
-    - waveform looping
+    
+    * amplitude & filter envelopes
+    * LFOs (low-frequency oscillators) for amplitude (tremolo), filter, pitch (vibrato), & panning
+    * pitch glide
+    * waveform looping
 
     :param synthesizer: The :class:`synthio.Synthesizer` object this voice will be used with.
     :param root: The root frequency used to calculate tuning. Defaults to 440.0hz. Changing this
