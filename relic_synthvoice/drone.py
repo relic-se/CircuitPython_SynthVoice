@@ -16,6 +16,8 @@ except ImportError:
 
 _LOG_2 = math.log(2)
 
+_RATE_DETUNE = 0.05
+
 
 class Drone(relic_synthvoice.Voice):
     """A multi-oscillator voice intended to generate "droning" synthesizer sounds with the
@@ -49,54 +51,61 @@ class Drone(relic_synthvoice.Voice):
         self._attack_time = 0.5
         self._release_time = 0.5
 
-        self._amplitude = synthio.Math(
-            synthio.MathOperation.SUM,
-            1 / oscillators,
+        self._amplitude = [
             synthio.Math(
-                synthio.MathOperation.PRODUCT,
-                synthio.LFO(  # Tremolo synthio.LFO
-                    waveform=None,
-                    rate=1.0,
-                    scale=0.0,
+                synthio.MathOperation.SUM,
+                1 / oscillators,
+                synthio.Math(
+                    synthio.MathOperation.PRODUCT,
+                    synthio.LFO(  # Tremolo synthio.LFO
+                        waveform=None,
+                        rate=1.0 + _RATE_DETUNE * i / (oscillators - 1),
+                        scale=0.0,
+                        offset=i / oscillators,
+                    ),
+                    synthio.LFO(  # Tremolo Delay
+                        waveform=np.array([0, 32767], dtype=np.int16),
+                        rate=1 / 0.001,
+                        once=True,
+                    ),
                 ),
-                synthio.LFO(  # Tremolo Delay
-                    waveform=np.array([0, 32767], dtype=np.int16),
-                    rate=1 / 0.001,
-                    once=True,
-                ),
-            ),
-            0.0,
-        )
+                0.0,
+            )
+            for i in range(oscillators)
+        ]
 
         self._freq_lerp = relic_synthvoice.LerpBlockInput(
             rate=0.0,
             value=0.0,
         )
 
-        self._bend = synthio.Math(
-            synthio.MathOperation.SUM,
-            self._freq_lerp.block,  # Frequency Lerp
+        self._bend = [
             synthio.Math(
-                synthio.MathOperation.PRODUCT,
-                synthio.LFO(  # Vibrato synthio.LFO
-                    waveform=None, rate=1.0, scale=0.0, offset=0.0
+                synthio.MathOperation.SUM,
+                self._freq_lerp.block,  # Frequency Lerp
+                synthio.Math(
+                    synthio.MathOperation.PRODUCT,
+                    synthio.LFO(  # Vibrato synthio.LFO
+                        waveform=None, rate=1.0 + _RATE_DETUNE * i / (oscillators - 1), scale=0.0, offset=i / oscillators,
+                    ),
+                    synthio.LFO(  # Vibrato Delay
+                        waveform=np.array([0, 32767], dtype=np.int16),
+                        rate=1 / 0.001,
+                        once=True,
+                    ),
                 ),
-                synthio.LFO(  # Vibrato Delay
-                    waveform=np.array([0, 32767], dtype=np.int16),
-                    rate=1 / 0.001,
-                    once=True,
-                ),
-            ),
-            0.0,
-        )
+                0.0,
+            )
+            for i in range(oscillators)
+        ]
 
         self._notes = tuple(
             [
                 synthio.Note(
                     frequency=root,
                     waveform=self._waveform,
-                    amplitude=self._amplitude,
-                    bend=self._bend,
+                    amplitude=self._amplitude[i],
+                    bend=self._bend[i],
                 )
                 for i in range(oscillators)
             ]
@@ -108,34 +117,63 @@ class Drone(relic_synthvoice.Voice):
             amount=0.0,
         )
 
-        self._filter_frequency = synthio.Math(
-            synthio.MathOperation.MAX,
+        self._filter_frequency = [
             synthio.Math(
-                synthio.MathOperation.SUM,
-                synthesizer.sample_rate / 2,
-                self._filter_envelope.block,
+                synthio.MathOperation.MAX,
                 synthio.Math(
-                    synthio.MathOperation.PRODUCT,
-                    synthio.LFO(  # Filter synthio.LFO
-                        waveform=None,
-                        rate=1.0,
-                        scale=0.0,
-                        offset=0.0,
-                    ),
-                    synthio.LFO(  # Filter Delay
-                        waveform=np.array([0, 32767], dtype=np.int16),
-                        rate=1 / 0.001,
-                        once=True,
+                    synthio.MathOperation.SUM,
+                    synthesizer.sample_rate / 2,
+                    self._filter_envelope.block,
+                    synthio.Math(
+                        synthio.MathOperation.PRODUCT,
+                        synthio.LFO(  # Filter synthio.LFO
+                            waveform=None,
+                            rate=1.0 + _RATE_DETUNE * i / (oscillators - 1),
+                            scale=0.0,
+                            offset=i / oscillators,
+                        ),
+                        synthio.LFO(  # Filter Delay
+                            waveform=np.array([0, 32767], dtype=np.int16),
+                            rate=1 / 0.001,
+                            once=True,
+                        ),
                     ),
                 ),
-            ),
-            40.0,  # Minimum allowed frequency
-        )
+                40.0,  # Minimum allowed frequency
+            )
+            for i in range(oscillators)
+        ]
 
         self._update_biquad(frequency=self._filter_frequency)
         self._update_envelope()
 
         self._append_blocks()
+
+    def _update_biquad(
+        self,
+        mode: synthio.FilterMode = synthio.FilterMode.LOW_PASS,
+        frequency: any = None,
+        Q: float = 0.7071067811865475,
+    ) -> None:
+        if frequency is None:
+            frequency = self._synthesizer.sample_rate / 2
+
+        if not isinstance(frequency, list):
+            frequency = [frequency]
+
+        if hasattr(synthio, "BlockBiquad"):
+            self._biquad = [
+                synthio.BlockBiquad(mode, frequency[i % len(frequency)], Q)
+                for i in range(len(self.notes))
+            ]
+        else:
+            self._biquad = [
+                synthio.Biquad(mode, frequency[i % len(frequency)], Q)
+                for i in range(len(self.notes))
+            ]
+
+        for i, note in enumerate(self.notes):
+            note.filter = self._biquad[i]
 
     @property
     def notes(self) -> tuple[synthio.Note]:
@@ -161,9 +199,10 @@ class Drone(relic_synthvoice.Voice):
             return False
         self.frequency = self._root if notenum is None else synthio.midi_to_hz(notenum)
         self._filter_envelope.press()
-        self._filter_frequency.a.c.b.retrigger()
-        self._amplitude.b.b.retrigger()  # Tremolo Delay
-        self._bend.b.b.retrigger()  # Vibrato Delay
+        for i in range(len(self._notes)):
+            self._filter_frequency[i].a.c.b.retrigger()
+            self._amplitude[i].b.b.retrigger()  # Tremolo Delay
+            self._bend[i].b.b.retrigger()  # Vibrato Delay
         return True
 
     def release(self) -> bool:
@@ -243,33 +282,37 @@ class Drone(relic_synthvoice.Voice):
     @property
     def vibrato_rate(self) -> float:
         """The rate of the frequency LFO in hertz. Defaults to 1.0hz."""
-        return self._bend.b.a.rate
+        return self._bend[0].b.a.rate
 
     @vibrato_rate.setter
     def vibrato_rate(self, value: float) -> None:
-        self._bend.b.a.rate = value
+        for i in range(len(self._notes)):
+            self._bend[i].b.a.rate = value * (1 + _RATE_DETUNE * i / (len(self._notes) - 1))
 
     @property
     def vibrato_depth(self) -> float:
         """The depth of the frequency LFO in octaves relative to the current note frequency and
         :attr:`bend`. Defaults to 0.0.
         """
-        return self._bend.b.a.scale
+        return self._bend[0].b.a.scale
 
     @vibrato_depth.setter
     def vibrato_depth(self, value: float) -> None:
-        self._bend.b.a.scale = value
+        for i in range(len(self._notes)):
+            self._bend[i].b.a.scale = value
 
     @property
     def vibrato_delay(self) -> float:
         """The amount of time to gradually increase the depth of the frequency LFO in seconds. Must
         be greater than 0.0s. Defaults to 0.001s.
         """
-        return 1 / self._bend.b.b.rate
+        return 1 / self._bend[0].b.b.rate
 
     @vibrato_delay.setter
     def vibrato_delay(self, value: float) -> None:
-        self._bend.b.b.rate = 1 / max(value, 0.001)
+        value = 1 / max(value, 0.001)
+        for i in range(len(self._notes)):
+            self._bend[i].b.b.rate = value
 
     @property
     def waveform(self) -> ReadableBuffer | None:
@@ -288,42 +331,47 @@ class Drone(relic_synthvoice.Voice):
         oscillators inaudible. Defaults to 1 divided by the number of oscillators (ie: 0.333 if
         using 3 oscillators).
         """
-        return self._amplitude.a
+        return self._amplitude[0].a
 
     @amplitude.setter
     def amplitude(self, value: float) -> None:
-        self._amplitude.a = value
+        for i in range(len(self._notes)):
+            self._amplitude[i].a = value
 
     @property
     def tremolo_rate(self) -> float:
         """The rate of the amplitude LFO in hertz. Defaults to 1.0hz."""
-        return self._amplitude.b.a.rate
+        return self._amplitude[0].b.a.rate
 
     @tremolo_rate.setter
     def tremolo_rate(self, value: float) -> None:
-        self._amplitude.b.a.rate = value
+        for i in range(len(self._notes)):
+            self._amplitude[i].b.a.rate = value * (1 + _RATE_DETUNE * i / (len(self._notes) - 1))
 
     @property
     def tremolo_depth(self) -> float:
         """The depth of the amplitude LFO. This value is added to :attr:`amplitude`. Defaults to
         0.0.
         """
-        return self._amplitude.b.a.scale
+        return self._amplitude[0].b.a.scale
 
     @tremolo_depth.setter
     def tremolo_depth(self, value: float) -> None:
-        self._amplitude.b.a.scale = value
+        for i in range(len(self._notes)):
+            self._amplitude[i].b.a.scale = value
 
     @property
     def tremolo_delay(self) -> float:
         """The amount of time to gradually increase the depth of the amplitude LFO in seconds. Must
         be greater than 0.0s. Defaults to 0.001s.
         """
-        return 1 / self._amplitude.b.b.rate
+        return 1 / self._amplitude[0].b.b.rate
 
     @tremolo_delay.setter
     def tremolo_delay(self, value: float) -> None:
-        self._amplitude.b.b.rate = 1 / max(value, 0.001)
+        value = 1 / max(value, 0.001)
+        for i in range(len(self._notes)):
+            self._amplitude[i].b.b.rate = value
 
     def _update_envelope(self):
         self._envelope = synthio.Envelope(
@@ -361,15 +409,39 @@ class Drone(relic_synthvoice.Voice):
         self._update_envelope()
 
     @property
+    def filter_mode(self) -> synthio.FilterMode:
+        """The type of the filter. Defaults to :const:`synthio.FilterMode.LOW_PASS`."""
+        return self._biquad[0].mode
+
+    @filter_mode.setter
+    def filter_mode(self, value: synthio.FilterMode) -> None:
+        self._update_biquad(value, self._filter_frequency, self.filter_resonance)
+
+    @property
     def filter_frequency(self) -> float:
         """The frequency of the filter in hertz. The maximum value allowed and default is half of
         the sample rate (the Nyquist frequency).
         """
-        return self._filter_frequency.a.a
+        return self._filter_frequency[0].a.a
 
     @filter_frequency.setter
     def filter_frequency(self, value: float) -> None:
-        self._filter_frequency.a.a = min(max(value, 1), self._synthesizer.sample_rate / 2)
+        value = min(max(value, 1), self._synthesizer.sample_rate / 2)
+        for i in range(len(self._notes)):
+            self._filter_frequency[i].a.a = value
+
+    @property
+    def filter_resonance(self) -> float:
+        """The resonance of the filter (or Q factor) as a number starting from 0.7. Defaults to
+        0.7.
+        """
+        return self._biquad[0].Q
+
+    @filter_resonance.setter
+    def filter_resonance(self, value: float) -> None:
+        value = max(value, 0.7071067811865475)
+        for i in range(len(self._notes)):
+            self._biquad[i].Q = value
 
     @property
     def filter_attack_time(self) -> float:
@@ -409,30 +481,34 @@ class Drone(relic_synthvoice.Voice):
     @property
     def filter_rate(self) -> float:
         """The rate in hertz of the filter frequency LFO. Defaults to 1.0hz."""
-        return self._filter_frequency.a.c.a.rate
+        return self._filter_frequency[0].a.c.a.rate
 
     @filter_rate.setter
     def filter_rate(self, value: float) -> None:
-        self._filter_frequency.a.c.a.rate = value
+        for i in range(len(self._notes)):
+            self._filter_frequency[i].a.c.a.rate = value * (1 + _RATE_DETUNE * i / (len(self._notes) - 1))
 
     @property
     def filter_depth(self) -> float:
         """The maximum level of the filter LFO to add to :attr:`filter_frequency` in hertz in both
         positive and negative directions. Defaults to 0.0hz.
         """
-        return self._filter_frequency.a.c.a.scale
+        return self._filter_frequency[0].a.c.a.scale
 
     @filter_depth.setter
     def filter_depth(self, value: float) -> None:
-        self._filter_frequency.a.c.a.scale = value
+        for i in range(len(self._notes)):
+            self._filter_frequency[i].a.c.a.scale = value
 
     @property
     def filter_delay(self) -> float:
         """The amount of time to gradually increase the depth of the filter LFO in seconds. Must be
         greater than 0.0s. Defaults to 0.001s.
         """
-        return 1 / self._filter_frequency.a.c.b.rate
+        return 1 / self._filter_frequency[0].a.c.b.rate
 
     @filter_delay.setter
     def filter_delay(self, value: float) -> None:
-        self._filter_frequency.a.c.b.rate = 1 / max(value, 0.001)
+        value = 1 / max(value, 0.001)
+        for i in range(len(self._notes)):
+            self._filter_frequency[i].a.c.b.rate = value
