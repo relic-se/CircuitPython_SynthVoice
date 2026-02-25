@@ -62,7 +62,8 @@ class Drone(relic_synthvoice.Voice):
                     synthio.MathOperation.PRODUCT,
                     synthio.LFO(  # Tremolo synthio.LFO
                         waveform=None,
-                        rate=1.0 + _RATE_DETUNE / 2 * i / (self._max_oscillators - 1) * ((i % 2) * 2 - 1),
+                        rate=1.0
+                        + _RATE_DETUNE / 2 * i / (self._max_oscillators - 1) * ((i % 2) * 2 - 1),
                         scale=0.0,
                         offset=i / self._max_oscillators,
                     ),
@@ -90,7 +91,8 @@ class Drone(relic_synthvoice.Voice):
                     synthio.MathOperation.PRODUCT,
                     synthio.LFO(  # Vibrato synthio.LFO
                         waveform=None,
-                        rate=1.0 + _RATE_DETUNE / 2 * i / (self._max_oscillators - 1) * ((i % 2) * 2 - 1),
+                        rate=1.0
+                        + _RATE_DETUNE / 2 * i / (self._max_oscillators - 1) * ((i % 2) * 2 - 1),
                         scale=0.0,
                         offset=i / self._max_oscillators,
                     ),
@@ -134,7 +136,12 @@ class Drone(relic_synthvoice.Voice):
                         synthio.MathOperation.PRODUCT,
                         synthio.LFO(  # Filter synthio.LFO
                             waveform=None,
-                            rate=1.0 + _RATE_DETUNE / 2 * i / (self._max_oscillators - 1) * ((i % 2) * 2 - 1),
+                            rate=1.0
+                            + _RATE_DETUNE
+                            / 2
+                            * i
+                            / (self._max_oscillators - 1)
+                            * ((i % 2) * 2 - 1),
                             scale=0.0,
                             offset=i / self._max_oscillators,
                         ),
@@ -313,7 +320,9 @@ class Drone(relic_synthvoice.Voice):
     @vibrato_rate.setter
     def vibrato_rate(self, value: float) -> None:
         for i in range(len(self._notes)):
-            self._bend[i].b.a.rate = value * (1 + _RATE_DETUNE / 2 * i / (len(self._notes) - 1) * ((i % 2) * 2 - 1))
+            self._bend[i].b.a.rate = value * (
+                1 + _RATE_DETUNE / 2 * i / (len(self._notes) - 1) * ((i % 2) * 2 - 1)
+            )
 
     @property
     def vibrato_depth(self) -> float:
@@ -372,7 +381,9 @@ class Drone(relic_synthvoice.Voice):
     @tremolo_rate.setter
     def tremolo_rate(self, value: float) -> None:
         for i in range(len(self._notes)):
-            self._amplitude[i].b.a.rate = value * (1 + _RATE_DETUNE / 2 * i / (len(self._notes) - 1) * ((i % 2) * 2 - 1))
+            self._amplitude[i].b.a.rate = value * (
+                1 + _RATE_DETUNE / 2 * i / (len(self._notes) - 1) * ((i % 2) * 2 - 1)
+            )
 
     @property
     def tremolo_depth(self) -> float:
