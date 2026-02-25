@@ -29,15 +29,18 @@ class Drone(relic_synthvoice.Voice):
     * pitch glide
 
     :param synthesizer: The :class:`synthio.Synthesizer` object this voice will be used with.
-    :param oscillators: The number of oscillators to control with this voice.
+    :param max_oscillators: The maximum number of oscillators to control with this voice. Must be
+        greater than 1.
     :param root: The root frequency used to calculate tuning. Defaults to 440.0hz. Changing this
         value will affect tuning properties.
     """
 
     def __init__(
-        self, synthesizer: synthio.Synthesizer, oscillators: int = 3, root: float = 130.81
+        self, synthesizer: synthio.Synthesizer, max_oscillators: int = 3, root: float = 130.81
     ):
         self._synthesizer = synthesizer
+        self._max_oscillators = max(max_oscillators, 2)
+        self._oscillators = self._max_oscillators
 
         self._notenum = -1
         self._velocity = 0.0
@@ -54,14 +57,14 @@ class Drone(relic_synthvoice.Voice):
         self._amplitude = [
             synthio.Math(
                 synthio.MathOperation.SUM,
-                1 / oscillators,
+                1 / self._max_oscillators,
                 synthio.Math(
                     synthio.MathOperation.PRODUCT,
                     synthio.LFO(  # Tremolo synthio.LFO
                         waveform=None,
-                        rate=1.0 + _RATE_DETUNE * i / (oscillators - 1),
+                        rate=1.0 + _RATE_DETUNE * i / (self._max_oscillators - 1),
                         scale=0.0,
-                        offset=i / oscillators,
+                        offset=i / self._max_oscillators,
                     ),
                     synthio.LFO(  # Tremolo Delay
                         waveform=np.array([0, 32767], dtype=np.int16),
@@ -71,7 +74,7 @@ class Drone(relic_synthvoice.Voice):
                 ),
                 0.0,
             )
-            for i in range(oscillators)
+            for i in range(self._max_oscillators)
         ]
 
         self._freq_lerp = relic_synthvoice.LerpBlockInput(
@@ -86,7 +89,10 @@ class Drone(relic_synthvoice.Voice):
                 synthio.Math(
                     synthio.MathOperation.PRODUCT,
                     synthio.LFO(  # Vibrato synthio.LFO
-                        waveform=None, rate=1.0 + _RATE_DETUNE * i / (oscillators - 1), scale=0.0, offset=i / oscillators,
+                        waveform=None,
+                        rate=1.0 + _RATE_DETUNE * i / (self._max_oscillators - 1),
+                        scale=0.0,
+                        offset=i / self._max_oscillators,
                     ),
                     synthio.LFO(  # Vibrato Delay
                         waveform=np.array([0, 32767], dtype=np.int16),
@@ -96,7 +102,7 @@ class Drone(relic_synthvoice.Voice):
                 ),
                 0.0,
             )
-            for i in range(oscillators)
+            for i in range(self._max_oscillators)
         ]
 
         self._notes = tuple(
@@ -107,7 +113,7 @@ class Drone(relic_synthvoice.Voice):
                     amplitude=self._amplitude[i],
                     bend=self._bend[i],
                 )
-                for i in range(oscillators)
+                for i in range(self._max_oscillators)
             ]
         )
 
@@ -128,9 +134,9 @@ class Drone(relic_synthvoice.Voice):
                         synthio.MathOperation.PRODUCT,
                         synthio.LFO(  # Filter synthio.LFO
                             waveform=None,
-                            rate=1.0 + _RATE_DETUNE * i / (oscillators - 1),
+                            rate=1.0 + _RATE_DETUNE * i / (self._max_oscillators - 1),
                             scale=0.0,
-                            offset=i / oscillators,
+                            offset=i / self._max_oscillators,
                         ),
                         synthio.LFO(  # Filter Delay
                             waveform=np.array([0, 32767], dtype=np.int16),
@@ -141,7 +147,7 @@ class Drone(relic_synthvoice.Voice):
                 ),
                 40.0,  # Minimum allowed frequency
             )
-            for i in range(oscillators)
+            for i in range(self._max_oscillators)
         ]
 
         self._update_biquad(frequency=self._filter_frequency)
@@ -176,9 +182,29 @@ class Drone(relic_synthvoice.Voice):
             note.filter = self._biquad[i]
 
     @property
+    def oscillators(self) -> int:
+        """The number of active oscillators from 1 up to the maximum number of oscillators defined
+        in the constructor. If the voice is pressed and this value is changed, any oscillators
+        added will be pressed and any oscillators removed will be released.
+        """
+        return self._oscillators
+
+    @oscillators.setter
+    def oscillators(self, value: int) -> None:
+        value = min(max(value, 1), self._max_oscillators)
+        if value != self._oscillators and self.pressed:
+            if value > self._oscillators:
+                for i in range(self._oscillators, value):
+                    self._synthesizer.press(self._notes[i])
+            else:
+                for i in range(value, self._oscillators):
+                    self._synthesizer.release(self._notes[i])
+        self._oscillators = value
+
+    @property
     def notes(self) -> tuple[synthio.Note]:
-        """Get all :class:`synthio.Note` objects attributed to this voice."""
-        return self._notes
+        """Get all active :class:`synthio.Note` objects attributed to this voice."""
+        return self._notes[: self._oscillators]
 
     @property
     def blocks(self) -> tuple[synthio.BlockInput]:
@@ -486,7 +512,9 @@ class Drone(relic_synthvoice.Voice):
     @filter_rate.setter
     def filter_rate(self, value: float) -> None:
         for i in range(len(self._notes)):
-            self._filter_frequency[i].a.c.a.rate = value * (1 + _RATE_DETUNE * i / (len(self._notes) - 1))
+            self._filter_frequency[i].a.c.a.rate = value * (
+                1 + _RATE_DETUNE * i / (len(self._notes) - 1)
+            )
 
     @property
     def filter_depth(self) -> float:
